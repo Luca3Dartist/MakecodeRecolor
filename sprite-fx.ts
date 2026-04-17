@@ -7,6 +7,7 @@ namespace spriteFx {
     const originalImages: Image[] = []
     const rotationAngles: number[] = []
     const opacityPercents: number[] = []
+    const outlineColors: number[] = []
 
     function normalizeAngle(angle: number): number {
         let normalized = angle % 360
@@ -23,6 +24,7 @@ namespace spriteFx {
         originalImages.push(sprite.image.clone())
         rotationAngles.push(0)
         opacityPercents.push(100)
+        outlineColors.push(0)
         return trackedSprites.length - 1
     }
 
@@ -88,7 +90,8 @@ namespace spriteFx {
     function refreshSpriteImage(sprite: Sprite): void {
         const idx = spriteIndex(sprite)
         const rotated = rotateImage(originalImages[idx], rotationAngles[idx])
-        sprite.setImage(applyOpacityDither(rotated, opacityPercents[idx]))
+        const dithered = applyOpacityDither(rotated, opacityPercents[idx])
+        sprite.setImage(applyOutline(dithered, outlineColors[idx]))
     }
 
     function setSpriteData(sprite: Sprite, original: Image, angle: number, opacity: number): void {
@@ -128,6 +131,28 @@ namespace spriteFx {
         }
 
         return cropped
+    }
+
+    function applyOutline(source: Image, color: number): Image {
+        if (color === 0) return source.clone()
+        const outlined = source.clone()
+        for (let y = 0; y < source.height; y++) {
+            for (let x = 0; x < source.width; x++) {
+                if (source.getPixel(x, y) != 0) continue
+                let neighborSolid = false
+                for (let dy = -1; dy <= 1 && !neighborSolid; dy++) {
+                    for (let dx = -1; dx <= 1 && !neighborSolid; dx++) {
+                        if (dx == 0 && dy == 0) continue
+                        const nx = x + dx
+                        const ny = y + dy
+                        if (nx < 0 || ny < 0 || nx >= source.width || ny >= source.height) continue
+                        if (source.getPixel(nx, ny) != 0) neighborSolid = true
+                    }
+                }
+                if (neighborSolid) outlined.setPixel(x, y, color)
+            }
+        }
+        return outlined
     }
 
     //% block="rotate $sprite by $angle degrees"
@@ -362,32 +387,19 @@ namespace spriteFx {
     //% group="Effects"
     export function outline(sprite: Sprite, color: number): void {
         if (!sprite) return
-
         const idx = spriteIndex(sprite)
-        const source = originalImages[idx]
-        const outlineColor = clamp(Math.round(color), 1, 15)
-        const outlined = source.clone()
+        outlineColors[idx] = clamp(Math.round(color), 1, 15)
+        refreshSpriteImage(sprite)
+    }
 
-        for (let y = 0; y < source.height; y++) {
-            for (let x = 0; x < source.width; x++) {
-                if (source.getPixel(x, y) != 0) continue
-
-                let neighborSolid = false
-                for (let dy = -1; dy <= 1 && !neighborSolid; dy++) {
-                    for (let dx = -1; dx <= 1 && !neighborSolid; dx++) {
-                        if (dx == 0 && dy == 0) continue
-                        const nx = x + dx
-                        const ny = y + dy
-                        if (nx < 0 || ny < 0 || nx >= source.width || ny >= source.height) continue
-                        if (source.getPixel(nx, ny) != 0) neighborSolid = true
-                    }
-                }
-
-                if (neighborSolid) outlined.setPixel(x, y, outlineColor)
-            }
-        }
-
-        originalImages[idx] = outlined
+    //% block="remove outline from $sprite"
+    //% sprite.shadow=variables_get
+    //% sprite.defl=mySprite
+    //% group="Effects"
+    export function removeOutline(sprite: Sprite): void {
+        if (!sprite) return
+        const idx = spriteIndex(sprite)
+        outlineColors[idx] = 0
         refreshSpriteImage(sprite)
     }
 
