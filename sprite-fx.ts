@@ -1,8 +1,9 @@
-//% color=#00ff37 icon="\uf1d8" block="Luca Recolor"
+//% color=#00ff37 icon="\uf1d8" block="Luca's Recolor"
 namespace spriteFx {
     const trackedSprites: Sprite[] = []
     const originalImages: Image[] = []
     const recolorCache: Image[][][] = []
+    const trackedKinds: number[] = []
 
     function spriteIndex(sprite: Sprite): number {
         for (let i = 0; i < trackedSprites.length; i++) {
@@ -11,9 +12,15 @@ namespace spriteFx {
         trackedSprites.push(sprite)
         originalImages.push(sprite.image.clone())
         recolorCache.push([])
-        sprite.onDestroyed(function () {
-            untrack(sprite)
-        })
+
+        const kind = sprite.kind()
+        if (trackedKinds.indexOf(kind) < 0) {
+            trackedKinds.push(kind)
+            sprites.onDestroyed(kind, function (destroyed: Sprite) {
+                untrack(destroyed)
+            })
+        }
+
         return trackedSprites.length - 1
     }
 
