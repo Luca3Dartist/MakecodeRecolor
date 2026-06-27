@@ -1,4 +1,4 @@
-//% color=#00ff37 icon="\uf1d8" block="Luca's Recolor"
+//% color=#00ff37 icon="\uf1d8" block="Luca Recolor"
 namespace spriteFx {
     const trackedSprites: Sprite[] = []
     const originalImages: Image[] = []
